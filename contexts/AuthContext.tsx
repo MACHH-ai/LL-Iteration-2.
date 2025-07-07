@@ -97,27 +97,40 @@ const initialState: AuthState = {
 
 // Secure storage helpers
 const storeSecurely = async (key: string, value: string) => {
-  if (Platform.OS === 'web') {
-    localStorage.setItem(key, btoa(value));
-  } else {
-    await SecureStore.setItemAsync(key, value);
+  try {
+    if (Platform.OS === 'web') {
+      localStorage.setItem(key, btoa(value));
+    } else {
+      await SecureStore.setItemAsync(key, value);
+    }
+  } catch (error) {
+    console.warn('Failed to store securely:', error);
   }
 };
 
 const getSecurely = async (key: string): Promise<string | null> => {
-  if (Platform.OS === 'web') {
-    const value = localStorage.getItem(key);
-    return value ? atob(value) : null;
-  } else {
-    return await SecureStore.getItemAsync(key);
+  try {
+    if (Platform.OS === 'web') {
+      const value = localStorage.getItem(key);
+      return value ? atob(value) : null;
+    } else {
+      return await SecureStore.getItemAsync(key);
+    }
+  } catch (error) {
+    console.warn('Failed to get securely:', error);
+    return null;
   }
 };
 
 const deleteSecurely = async (key: string) => {
-  if (Platform.OS === 'web') {
-    localStorage.removeItem(key);
-  } else {
-    await SecureStore.deleteItemAsync(key);
+  try {
+    if (Platform.OS === 'web') {
+      localStorage.removeItem(key);
+    } else {
+      await SecureStore.deleteItemAsync(key);
+    }
+  } catch (error) {
+    console.warn('Failed to delete securely:', error);
   }
 };
 
@@ -126,7 +139,7 @@ const transformUser = (supabaseUser: SupabaseUser, userData?: any): User => {
   return {
     id: supabaseUser.id,
     email: supabaseUser.email || '',
-    firstName: userData?.first_name || supabaseUser.user_metadata?.first_name || '',
+    firstName: userData?.first_name || supabaseUser.user_metadata?.first_name || 'User',
     lastName: userData?.last_name || supabaseUser.user_metadata?.last_name || '',
     username: userData?.username || supabaseUser.user_metadata?.username,
     avatarUrl: userData?.avatar_url || supabaseUser.user_metadata?.avatar_url,
@@ -162,6 +175,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const initializeAuth = async () => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
+      // Check for guest session first
+      const guestSession = await getSecurely('guest_session');
+      if (guestSession) {
+        const guestUser = JSON.parse(guestSession);
+        const mockSession = {
+          access_token: 'guest-token',
+          refresh_token: 'guest-refresh',
+          expires_in: 3600,
+          token_type: 'bearer',
+          user: {
+            id: guestUser.id,
+            email: guestUser.email,
+            created_at: guestUser.createdAt,
+          },
+        } as Session;
+        
+        dispatch({ type: 'SET_USER', payload: { user: guestUser, session: mockSession } });
+        return;
+      }
+
+      // Check for regular Supabase session
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {

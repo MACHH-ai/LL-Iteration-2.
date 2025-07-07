@@ -22,21 +22,6 @@ export interface ProblemResult {
   errorMessage?: string;
 }
 
-// Generate a valid UUID v4
-const generateUUID = (): string => {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-};
-
-// Validate UUID format
-const isValidUUID = (uuid: string): boolean => {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(uuid);
-};
-
 export function useProblemSubmission() {
   const { user, isAuthenticated } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,13 +54,10 @@ export function useProblemSubmission() {
       if (isAuthenticated && user?.id && !user.isGuest) {
         userId = user.id;
         console.log('Using authenticated user ID:', userId);
-      } else if (user?.isGuest) {
+      } else {
         // For guest users, don't send user_id - let the Edge Function handle it
         console.log('Guest user detected, letting Edge Function assign default user ID');
         userId = undefined;
-      } else {
-        // Not authenticated and not a guest
-        throw new Error('Please sign in to submit problems');
       }
 
       // Prepare request body for Edge Function
@@ -136,12 +118,6 @@ export function useProblemSubmission() {
         throw new Error('Invalid response: missing problem ID');
       }
 
-      // Validate the returned problem ID
-      if (!isValidUUID(response.problemId)) {
-        console.error('Invalid problem ID format received:', response.problemId);
-        throw new Error('Invalid response format from server');
-      }
-
       console.log('Problem submitted successfully with ID:', response.problemId);
 
       // Set initial result based on response
@@ -198,11 +174,6 @@ export function useProblemSubmission() {
       try {
         console.log(`Polling attempt ${attempts + 1}/${maxAttempts} for problem ${problemId}`);
         
-        // Validate problem ID before querying
-        if (!isValidUUID(problemId)) {
-          throw new Error('Invalid problem ID format for polling');
-        }
-        
         const { data, error: fetchError } = await supabase
           .from('problem_submissions')
           .select('*')
@@ -211,13 +182,7 @@ export function useProblemSubmission() {
 
         if (fetchError) {
           console.error('Error polling for completion:', fetchError);
-          
-          // Handle specific database errors
-          if (fetchError.message.includes('invalid input syntax for type uuid')) {
-            setError('Invalid problem ID format. Please try submitting again.');
-          } else {
-            setError(`Failed to check problem status: ${fetchError.message}`);
-          }
+          setError(`Failed to check problem status: ${fetchError.message}`);
           return;
         }
 
@@ -259,7 +224,7 @@ export function useProblemSubmission() {
           status: data.status,
           solution: data.solution || undefined,
           explanation: data.explanation || data.solution || undefined,
-          subject: data.topic || data.subject || undefined,
+          subject: data.subject || undefined,
           difficulty: data.difficulty || undefined,
           tags: tags,
           errorMessage: errorMessage,
