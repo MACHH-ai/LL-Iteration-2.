@@ -4,11 +4,13 @@ import { Database } from '@/types/database';
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
+let supabase;
+
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase environment variables not found. Using mock client for development.');
   
   // Create a mock client for development when env vars are missing
-  export const supabase = {
+  supabase = {
     from: () => ({
       select: () => ({ data: [], error: null }),
       insert: () => ({ data: null, error: null }),
@@ -25,7 +27,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
     },
   } as any;
 } else {
-  export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: true,
       persistSession: true,
@@ -33,3 +35,5 @@ if (!supabaseUrl || !supabaseAnonKey) {
     },
   });
 }
+
+export { supabase };
