@@ -25,37 +25,7 @@ export function useProblemHistory() {
       // Handle guest users with mock data
       if (user.isGuest) {
         console.log('Guest user detected, returning mock data');
-        const mockProblems: ProblemEntry[] = [
-          {
-            id: '1',
-            title: 'Quadratic Equation Solution',
-            description: 'Solve the quadratic equation 2x² + 5x - 3 = 0 using the quadratic formula.',
-            type: 'text',
-            content: 'How do I solve 2x² + 5x - 3 = 0?',
-            solution: 'Using the quadratic formula: x = (-b ± √(b² - 4ac)) / 2a\nWhere a = 2, b = 5, c = -3\nx = (-5 ± √(25 + 24)) / 4 = (-5 ± 7) / 4\nSolutions: x = 1/2 or x = -3',
-            topic: 'Algebra',
-            difficulty: 'medium',
-            solvedAt: '2024-01-21T10:30:00Z',
-            timeSpent: 15,
-            tags: ['quadratic', 'algebra', 'formula'],
-            imageUrl: 'https://images.pexels.com/photos/6238297/pexels-photo-6238297.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-          },
-          {
-            id: '2',
-            title: 'Photosynthesis Process',
-            description: 'Explain the process of photosynthesis and its importance in the ecosystem.',
-            type: 'voice',
-            content: 'Can you explain how photosynthesis works?',
-            solution: 'Photosynthesis is the process by which plants convert light energy into chemical energy. The equation is: 6CO₂ + 6H₂O + light energy → C₆H₁₂O₆ + 6O₂. This process occurs in chloroplasts and is essential for life on Earth.',
-            topic: 'Biology',
-            difficulty: 'easy',
-            solvedAt: '2024-01-20T14:15:00Z',
-            timeSpent: 8,
-            tags: ['biology', 'plants', 'energy'],
-            imageUrl: 'https://images.pexels.com/photos/1072179/pexels-photo-1072179.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2',
-          },
-        ];
-        setProblems(mockProblems);
+        setProblems([]); // Empty for guests until they submit problems
         return;
       }
 

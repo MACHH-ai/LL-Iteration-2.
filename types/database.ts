@@ -1,6 +1,41 @@
 export interface Database {
   public: {
     Tables: {
+      users: {
+        Row: {
+          id: string;
+          email: string;
+          first_name: string | null;
+          last_name: string | null;
+          username: string | null;
+          avatar_url: string | null;
+          is_guest: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          email: string;
+          first_name?: string | null;
+          last_name?: string | null;
+          username?: string | null;
+          avatar_url?: string | null;
+          is_guest?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          first_name?: string | null;
+          last_name?: string | null;
+          username?: string | null;
+          avatar_url?: string | null;
+          is_guest?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       problem_submissions: {
         Row: {
           id: string;
@@ -18,6 +53,7 @@ export interface Database {
           status: 'pending' | 'processing' | 'completed' | 'error';
           error_message: string | null;
           processing_time_ms: number | null;
+          ai_response: any | null;
           created_at: string;
           updated_at: string;
         };
@@ -37,6 +73,7 @@ export interface Database {
           status?: 'pending' | 'processing' | 'completed' | 'error';
           error_message?: string | null;
           processing_time_ms?: number | null;
+          ai_response?: any | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -56,6 +93,7 @@ export interface Database {
           status?: 'pending' | 'processing' | 'completed' | 'error';
           error_message?: string | null;
           processing_time_ms?: number | null;
+          ai_response?: any | null;
           created_at?: string;
           updated_at?: string;
         };

@@ -3,10 +3,12 @@ import { View, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function IndexScreen() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { colors } = useTheme();
 
   useEffect(() => {
     if (!isLoading) {
@@ -20,7 +22,7 @@ export default function IndexScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#8A2BE2', '#4B0082']} style={styles.gradient}>
+      <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.gradient}>
         <LoadingSpinner size={60} color="#FFFFFF" />
       </LinearGradient>
     </View>

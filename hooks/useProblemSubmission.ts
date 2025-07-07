@@ -66,12 +66,7 @@ export function useProblemSubmission() {
       // Determine user ID to use
       let userId: string | undefined;
       
-      if (isAuthenticated && user?.id) {
-        // Validate the authenticated user's ID
-        if (!isValidUUID(user.id)) {
-          console.error('Invalid user ID format:', user.id);
-          throw new Error('Invalid user session. Please sign in again.');
-        }
+      if (isAuthenticated && user?.id && !user.isGuest) {
         userId = user.id;
         console.log('Using authenticated user ID:', userId);
       } else if (user?.isGuest) {
