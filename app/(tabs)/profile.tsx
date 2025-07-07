@@ -1,3 +1,4 @@
+import React from 'react';
 import { 
   View, 
   Text, 
@@ -8,11 +9,10 @@ import {
   Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { User, Settings, Bell, Shield, CircleHelp as HelpCircle, LogOut, Camera, Moon, Volume2, Monitor, Users, Crown, ChevronRight, Smartphone } from 'lucide-react-native';
+import { User, Settings, Bell, Shield, HelpCircle, LogOut, Camera, Moon, Volume2, Monitor, Users, Crown, ChevronRight } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import GuestBanner from '@/components/GuestBanner';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -29,9 +29,6 @@ export default function ProfileScreen() {
     );
   };
 
-  const handleDevMach = () => {
-    router.push('/dev-mach');
-  };
   const settingsGroups = [
     {
       title: "Account",
@@ -62,7 +59,6 @@ export default function ProfileScreen() {
       items: [
         { icon: HelpCircle, label: "Help Center", onPress: () => {} },
         { icon: Settings, label: "App Settings", onPress: () => {} },
-        { icon: Smartphone, label: "Dev Mach", onPress: handleDevMach, dev: true },
         { icon: LogOut, label: "Sign Out", onPress: handleLogout, danger: true },
       ]
     }
@@ -71,17 +67,17 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
       <LinearGradient
-        colors={[colors.primary, colors.accent]}
+        colors={[colors.primary, '#6366F1']}
         style={styles.header}
       >
         <View style={styles.profileSection}>
           <View style={styles.avatarContainer}>
-            <View style={[styles.avatar, { backgroundColor: colors.overlayLight, borderColor: colors.surface }]}>
+            <View style={[styles.avatar, { backgroundColor: 'rgba(255,255,255,0.1)', borderColor: colors.surface }]}>
               <Text style={[styles.avatarText, { color: colors.text }]}>
                 {user?.firstName?.[0]}{user?.lastName?.[0]}
               </Text>
             </View>
-            <View style={[styles.statusIndicator, { backgroundColor: colors.success, borderColor: colors.surface }]} />
+            <View style={[styles.statusIndicator, { backgroundColor: '#10B981', borderColor: colors.surface }]} />
           </View>
           <Text style={[styles.userName, { color: colors.text }]}>
             {user?.firstName} {user?.lastName}
@@ -90,24 +86,24 @@ export default function ProfileScreen() {
             <Text style={[styles.userEmail, { color: colors.textSecondary }]}>{user?.email}</Text>
           )}
           {user?.isGuest && (
-            <Text style={[styles.guestLabel, { color: colors.warning }]}>Guest User</Text>
+            <Text style={[styles.guestLabel, { color: '#F59E0B' }]}>Guest User</Text>
           )}
-          <View style={[styles.levelContainer, { backgroundColor: colors.overlayLight }]}>
+          <View style={[styles.levelContainer, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
             <Text style={[styles.levelText, { color: colors.text }]}>Level 12 • Learning Explorer</Text>
           </View>
         </View>
 
-        <View style={[styles.statsRow, { backgroundColor: colors.overlayLight }]}>
+        <View style={[styles.statsRow, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
           <View style={styles.statItem}>
             <Text style={[styles.statNumber, { color: colors.text }]}>127</Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Problems Solved</Text>
           </View>
-          <View style={[styles.statDivider, { backgroundColor: colors.overlayLight }]} />
+          <View style={[styles.statDivider, { backgroundColor: 'rgba(255,255,255,0.1)' }]} />
           <View style={styles.statItem}>
             <Text style={[styles.statNumber, { color: colors.text }]}>42</Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Hours Learned</Text>
           </View>
-          <View style={[styles.statDivider, { backgroundColor: colors.overlayLight }]} />
+          <View style={[styles.statDivider, { backgroundColor: 'rgba(255,255,255,0.1)' }]} />
           <View style={styles.statItem}>
             <Text style={[styles.statNumber, { color: colors.text }]}>7</Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Day Streak</Text>
@@ -116,12 +112,10 @@ export default function ProfileScreen() {
       </LinearGradient>
 
       <View style={styles.content}>
-        {user?.isGuest && <GuestBanner />}
-        
         {settingsGroups.map((group, groupIndex) => (
           <View key={groupIndex} style={styles.settingsGroup}>
             <Text style={[styles.groupTitle, { color: colors.text }]}>{group.title}</Text>
-            <View style={[styles.groupContainer, { backgroundColor: colors.surface, shadowColor: colors.shadow }]}>
+            <View style={[styles.groupContainer, { backgroundColor: colors.surface }]}>
               {group.items.map((item, itemIndex) => (
                 <TouchableOpacity
                   key={itemIndex}
@@ -137,20 +131,19 @@ export default function ProfileScreen() {
                     <View style={[
                       styles.settingsIcon,
                       { backgroundColor: colors.surfaceSecondary },
-                      item.danger && { backgroundColor: colors.error + '20' },
-                      item.premium && { backgroundColor: colors.warning + '20' }
+                      item.danger && { backgroundColor: '#EF4444' + '20' },
+                      item.premium && { backgroundColor: '#F59E0B' + '20' }
                     ]}>
                       <item.icon 
                         size={20} 
-                        color={item.danger ? colors.error : item.premium ? colors.warning : colors.textSecondary} 
+                        color={item.danger ? '#EF4444' : item.premium ? '#F59E0B' : colors.textSecondary} 
                       />
                     </View>
                     <Text style={[
                       styles.settingsLabel,
                       { color: colors.text },
-                      item.danger && { color: colors.error },
-                      item.premium && { color: colors.warning },
-                      item.dev && { color: colors.primary }
+                      item.danger && { color: '#EF4444' },
+                      item.premium && { color: '#F59E0B' }
                     ]}>
                       {item.label}
                     </Text>
