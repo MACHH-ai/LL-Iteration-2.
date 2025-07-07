@@ -23,6 +23,7 @@ export default function RegisterScreen() {
     email: '',
     password: '',
     confirmPassword: '',
+    username: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -62,8 +63,8 @@ export default function RegisterScreen() {
       case 'password':
         if (!value) {
           errors.password = 'Password is required';
-        } else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/.test(value)) {
-          errors.password = 'Password must be at least 8 characters with 1 uppercase letter and 1 number';
+        } else if (value.length < 8) {
+          errors.password = 'Password must be at least 8 characters';
         } else {
           delete errors.password;
         }
@@ -97,7 +98,9 @@ export default function RegisterScreen() {
     
     // Validate all fields
     Object.keys(formData).forEach(field => {
-      validateField(field, formData[field as keyof typeof formData]);
+      if (field !== 'username') { // username is optional
+        validateField(field, formData[field as keyof typeof formData]);
+      }
     });
     
     if (Object.keys(fieldErrors).length > 0) {
@@ -113,7 +116,8 @@ export default function RegisterScreen() {
   };
 
   const isFormValid = () => {
-    return Object.values(formData).every(value => value.trim() !== '') &&
+    const requiredFields = ['firstName', 'lastName', 'email', 'password', 'confirmPassword'];
+    return requiredFields.every(field => formData[field as keyof typeof formData].trim() !== '') &&
            Object.keys(fieldErrors).length === 0;
   };
 
@@ -184,6 +188,21 @@ export default function RegisterScreen() {
                 {fieldErrors.lastName && (
                   <Text style={styles.fieldErrorText}>{fieldErrors.lastName}</Text>
                 )}
+              </View>
+            </View>
+
+            {/* Username Field (Optional) */}
+            <View style={styles.inputContainer}>
+              <View style={styles.inputWrapper}>
+                <User size={20} color="#8A2BE2" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Username (optional)"
+                  placeholderTextColor="#AAAAAA"
+                  value={formData.username}
+                  onChangeText={(text) => updateField('username', text)}
+                  autoCapitalize="none"
+                />
               </View>
             </View>
 
@@ -267,8 +286,6 @@ export default function RegisterScreen() {
             <View style={styles.requirementsContainer}>
               <Text style={styles.requirementsTitle}>Password must contain:</Text>
               <Text style={styles.requirementItem}>• At least 8 characters</Text>
-              <Text style={styles.requirementItem}>• One uppercase letter</Text>
-              <Text style={styles.requirementItem}>• One number</Text>
             </View>
 
             {/* Register Button */}

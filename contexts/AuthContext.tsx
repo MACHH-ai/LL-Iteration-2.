@@ -1,14 +1,16 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { generateUUID, isValidUUID } from '@/utils/uuid';
-import { DEFAULT_USER_ID } from '@/constants/user';
+import { supabase } from '@/lib/supabase';
+import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 interface User {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
+  username?: string;
+  avatarUrl?: string;
   isGuest: boolean;
   createdAt: string;
   lastLoginAt: string;
@@ -16,10 +18,10 @@ interface User {
 
 interface AuthState {
   user: User | null;
+  session: Session | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-  token: string | null;
 }
 
 interface LoginCredentials {
@@ -34,6 +36,7 @@ interface RegisterCredentials {
   confirmPassword: string;
   firstName: string;
   lastName: string;
+  username?: string;
 }
 
 interface AuthContextType extends AuthState {
@@ -41,6 +44,7 @@ interface AuthContextType extends AuthState {
   register: (credentials: RegisterCredentials) => Promise<void>;
   logout: () => Promise<void>;
   continueAsGuest: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
   clearError: () => void;
 }
 
@@ -48,8 +52,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 type AuthAction =
   | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_USER'; payload: User }
-  | { type: 'SET_TOKEN'; payload: string }
+  | { type: 'SET_USER'; payload: { user: User; session: Session } }
   | { type: 'SET_ERROR'; payload: string }
   | { type: 'CLEAR_ERROR' }
   | { type: 'LOGOUT' };
@@ -61,13 +64,12 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
     case 'SET_USER':
       return {
         ...state,
-        user: action.payload,
+        user: action.payload.user,
+        session: action.payload.session,
         isAuthenticated: true,
         isLoading: false,
         error: null,
       };
-    case 'SET_TOKEN':
-      return { ...state, token: action.payload };
     case 'SET_ERROR':
       return { ...state, error: action.payload, isLoading: false };
     case 'CLEAR_ERROR':
@@ -75,10 +77,10 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
     case 'LOGOUT':
       return {
         user: null,
+        session: null,
         isAuthenticated: false,
         isLoading: false,
         error: null,
-        token: null,
       };
     default:
       return state;
@@ -87,10 +89,10 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
 
 const initialState: AuthState = {
   user: null,
+  session: null,
   isAuthenticated: false,
   isLoading: true,
   error: null,
-  token: null,
 };
 
 // Secure storage helpers
@@ -119,44 +121,84 @@ const deleteSecurely = async (key: string) => {
   }
 };
 
+// Transform Supabase user to our User type
+const transformUser = (supabaseUser: SupabaseUser, userData?: any): User => {
+  return {
+    id: supabaseUser.id,
+    email: supabaseUser.email || '',
+    firstName: userData?.first_name || supabaseUser.user_metadata?.first_name || '',
+    lastName: userData?.last_name || supabaseUser.user_metadata?.last_name || '',
+    username: userData?.username || supabaseUser.user_metadata?.username,
+    avatarUrl: userData?.avatar_url || supabaseUser.user_metadata?.avatar_url,
+    isGuest: userData?.is_guest || false,
+    createdAt: supabaseUser.created_at,
+    lastLoginAt: supabaseUser.last_sign_in_at || supabaseUser.created_at,
+  };
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
   // Initialize auth state on app start
   useEffect(() => {
     initializeAuth();
+    
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
+        
+        if (session?.user) {
+          await handleAuthUser(session.user, session);
+        } else {
+          dispatch({ type: 'LOGOUT' });
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const initializeAuth = async () => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      const token = await getSecurely('auth_token');
-      const userJson = await getSecurely('user_data');
+      const { data: { session }, error } = await supabase.auth.getSession();
       
-      if (token && userJson) {
-        const user = JSON.parse(userJson);
-        // Ensure user has valid UUID
-        if (!isValidUUID(user.id)) {
-          user.id = generateUUID();
-        }
-        dispatch({ type: 'SET_TOKEN', payload: token });
-        dispatch({ type: 'SET_USER', payload: user });
+      if (error) {
+        console.error('Error getting session:', error);
+        dispatch({ type: 'SET_ERROR', payload: error.message });
+        return;
+      }
+
+      if (session?.user) {
+        await handleAuthUser(session.user, session);
       }
     } catch (error) {
       console.error('Failed to initialize auth:', error);
-      // Set a default guest user if initialization fails
-      const guestUser: User = {
-        id: DEFAULT_USER_ID,
-        email: '',
-        firstName: 'Guest',
-        lastName: 'User',
-        isGuest: true,
-        createdAt: new Date().toISOString(),
-        lastLoginAt: new Date().toISOString(),
-      };
-      dispatch({ type: 'SET_USER', payload: guestUser });
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to initialize authentication' });
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
+
+  const handleAuthUser = async (supabaseUser: SupabaseUser, session: Session) => {
+    try {
+      // Fetch user data from our users table
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', supabaseUser.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching user data:', error);
+      }
+
+      const user = transformUser(supabaseUser, userData);
+      dispatch({ type: 'SET_USER', payload: { user, session } });
+    } catch (error) {
+      console.error('Error handling auth user:', error);
+      dispatch({ type: 'SET_ERROR', payload: 'Failed to load user data' });
     }
   };
 
@@ -165,32 +207,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'CLEAR_ERROR' });
 
     try {
-      // Simple validation
-      if (!credentials.email || !credentials.password) {
-        throw new Error('Email and password are required');
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.email,
+        password: credentials.password,
+      });
+
+      if (error) {
+        throw error;
       }
 
-      // Mock successful login - replace with real API call
-      const user: User = {
-        id: generateUUID(),
-        email: credentials.email,
-        firstName: 'Test',
-        lastName: 'User',
-        isGuest: false,
-        createdAt: new Date().toISOString(),
-        lastLoginAt: new Date().toISOString(),
-      };
+      if (credentials.rememberMe) {
+        await storeSecurely('remember_me', 'true');
+      }
 
-      const token = generateUUID();
-
-      // Store credentials
-      await storeSecurely('auth_token', token);
-      await storeSecurely('user_data', JSON.stringify(user));
-
-      dispatch({ type: 'SET_TOKEN', payload: token });
-      dispatch({ type: 'SET_USER', payload: user });
-    } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: (error as Error).message });
+      // User state will be updated via onAuthStateChange
+    } catch (error: any) {
+      dispatch({ type: 'SET_ERROR', payload: error.message || 'Login failed' });
       throw error;
     }
   };
@@ -200,35 +232,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'CLEAR_ERROR' });
 
     try {
-      // Simple validation
-      if (!credentials.email || !credentials.password || !credentials.firstName || !credentials.lastName) {
-        throw new Error('All fields are required');
-      }
-
       if (credentials.password !== credentials.confirmPassword) {
         throw new Error('Passwords do not match');
       }
 
-      // Mock successful registration
-      const user: User = {
-        id: generateUUID(),
+      const { data, error } = await supabase.auth.signUp({
         email: credentials.email,
-        firstName: credentials.firstName,
-        lastName: credentials.lastName,
-        isGuest: false,
-        createdAt: new Date().toISOString(),
-        lastLoginAt: new Date().toISOString(),
-      };
+        password: credentials.password,
+        options: {
+          data: {
+            first_name: credentials.firstName,
+            last_name: credentials.lastName,
+            username: credentials.username,
+          },
+        },
+      });
 
-      const token = generateUUID();
+      if (error) {
+        throw error;
+      }
 
-      await storeSecurely('auth_token', token);
-      await storeSecurely('user_data', JSON.stringify(user));
-
-      dispatch({ type: 'SET_TOKEN', payload: token });
-      dispatch({ type: 'SET_USER', payload: user });
-    } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: (error as Error).message });
+      // User state will be updated via onAuthStateChange
+    } catch (error: any) {
+      dispatch({ type: 'SET_ERROR', payload: error.message || 'Registration failed' });
       throw error;
     }
   };
@@ -238,8 +264,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'CLEAR_ERROR' });
 
     try {
+      // Create a temporary guest user
       const guestUser: User = {
-        id: DEFAULT_USER_ID, // Use consistent default user ID for guests
+        id: 'guest-' + Date.now(),
         email: '',
         firstName: 'Guest',
         lastName: 'User',
@@ -248,15 +275,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         lastLoginAt: new Date().toISOString(),
       };
 
-      const token = generateUUID();
+      // Store guest session
+      await storeSecurely('guest_session', JSON.stringify(guestUser));
+      
+      // Create a mock session for guest
+      const mockSession = {
+        access_token: 'guest-token',
+        refresh_token: 'guest-refresh',
+        expires_in: 3600,
+        token_type: 'bearer',
+        user: {
+          id: guestUser.id,
+          email: guestUser.email,
+          created_at: guestUser.createdAt,
+        },
+      } as Session;
 
-      await storeSecurely('auth_token', token);
-      await storeSecurely('user_data', JSON.stringify(guestUser));
-
-      dispatch({ type: 'SET_TOKEN', payload: token });
-      dispatch({ type: 'SET_USER', payload: guestUser });
-    } catch (error) {
-      dispatch({ type: 'SET_ERROR', payload: (error as Error).message });
+      dispatch({ type: 'SET_USER', payload: { user: guestUser, session: mockSession } });
+    } catch (error: any) {
+      dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to continue as guest' });
       throw error;
     }
   };
@@ -265,26 +302,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: true });
 
     try {
-      // Clear all stored authentication data
-      await deleteSecurely('auth_token');
-      await deleteSecurely('user_data');
+      // Clear guest session if exists
+      await deleteSecurely('guest_session');
+      await deleteSecurely('remember_me');
       
-      // Also clear any other stored preferences that might contain user data
-      try {
-        await deleteSecurely('remember_me');
-        await deleteSecurely('user_preferences');
-        await deleteSecurely('last_login');
-      } catch (error) {
-        // These might not exist, so we can safely ignore errors
-        console.log('Additional cleanup completed');
+      // Sign out from Supabase if not a guest
+      if (state.user && !state.user.isGuest) {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.error('Logout error:', error);
+        }
       }
       
       dispatch({ type: 'LOGOUT' });
-      console.log('User successfully logged out and all data cleared');
     } catch (error) {
       console.error('Logout error:', error);
-      // Even if there's an error, we should still log out the user
+      // Force logout even if there's an error
       dispatch({ type: 'LOGOUT' });
+    }
+  };
+
+  const requestPasswordReset = async (email: string) => {
+    dispatch({ type: 'CLEAR_ERROR' });
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+
+      if (error) {
+        throw error;
+      }
+    } catch (error: any) {
+      dispatch({ type: 'SET_ERROR', payload: error.message || 'Failed to send reset email' });
+      throw error;
     }
   };
 
@@ -300,6 +351,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         logout,
         continueAsGuest,
+        requestPasswordReset,
         clearError,
       }}
     >
