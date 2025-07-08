@@ -13,10 +13,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Link, router } from 'expo-router';
 import { Mail, ArrowLeft, Send } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function ForgotPasswordScreen() {
   const { requestPasswordReset, isLoading, error, clearError } = useAuth();
+  const { colors } = useTheme();
   const [email, setEmail] = useState('');
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState('');
@@ -59,7 +61,7 @@ export default function ForgotPasswordScreen() {
         style={styles.container} 
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <LinearGradient colors={['#8A2BE2', '#4B0082']} style={styles.gradient}>
+        <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.gradient}>
           <View style={styles.content}>
             <View style={styles.successContainer}>
               <View style={styles.iconContainer}>
@@ -76,7 +78,7 @@ export default function ForgotPasswordScreen() {
                 We've sent password reset instructions to {email}
               </Text>
               
-              <View style={styles.instructionsContainer}>
+              <View style={[styles.instructionsContainer, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
                 <Text style={styles.instructionsTitle}>What's next?</Text>
                 <Text style={styles.instructionItem}>1. Check your email inbox</Text>
                 <Text style={styles.instructionItem}>2. Click the reset link in the email</Text>
@@ -92,8 +94,8 @@ export default function ForgotPasswordScreen() {
                   colors={['#FFFFFF', '#F0F0F0']}
                   style={styles.backGradient}
                 >
-                  <ArrowLeft size={20} color="#8A2BE2" />
-                  <Text style={styles.backButtonText}>Back to Sign In</Text>
+                  <ArrowLeft size={20} color={colors.primary} />
+                  <Text style={[styles.backButtonText, { color: colors.primary }]}>Back to Sign In</Text>
                 </LinearGradient>
               </TouchableOpacity>
 
@@ -115,7 +117,7 @@ export default function ForgotPasswordScreen() {
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <LinearGradient colors={['#8A2BE2', '#4B0082']} style={styles.gradient}>
+      <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.gradient}>
         <View style={styles.content}>
           {/* Header */}
           <View style={styles.header}>
@@ -139,20 +141,20 @@ export default function ForgotPasswordScreen() {
           </View>
 
           {/* Form */}
-          <View style={styles.formContainer}>
+          <View style={[styles.formContainer, { backgroundColor: colors.surface }]}>
             {error && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
+              <View style={[styles.errorContainer, { backgroundColor: colors.error + '20', borderColor: colors.error }]}>
+                <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
               </View>
             )}
 
             <View style={styles.inputContainer}>
-              <View style={styles.inputWrapper}>
-                <Mail size={20} color="#8A2BE2" style={styles.inputIcon} />
+              <View style={[styles.inputWrapper, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
+                <Mail size={20} color={colors.primary} style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, emailError && styles.inputError]}
+                  style={[styles.input, emailError && styles.inputError, { color: colors.text }]}
                   placeholder="Enter your email address"
-                  placeholderTextColor="#AAAAAA"
+                  placeholderTextColor={colors.textTertiary}
                   value={email}
                   onChangeText={(text) => {
                     setEmail(text);
@@ -165,7 +167,7 @@ export default function ForgotPasswordScreen() {
                 />
               </View>
               {emailError && (
-                <Text style={styles.fieldErrorText}>{emailError}</Text>
+                <Text style={[styles.fieldErrorText, { color: colors.error }]}>{emailError}</Text>
               )}
             </View>
 
@@ -175,14 +177,14 @@ export default function ForgotPasswordScreen() {
               disabled={isLoading}
             >
               <LinearGradient
-                colors={isLoading ? ['#666', '#555'] : ['#FFFFFF', '#F0F0F0']}
+                colors={isLoading ? [colors.textSecondary, colors.textTertiary] : [colors.primary, colors.primaryDark]}
                 style={styles.submitGradient}
               >
                 {isLoading ? (
-                  <LoadingSpinner size={20} color="#8A2BE2" />
+                  <LoadingSpinner size={20} color="#FFFFFF" />
                 ) : (
                   <>
-                    <Send size={20} color="#8A2BE2" />
+                    <Send size={20} color="#FFFFFF" />
                     <Text style={styles.submitButtonText}>Send Reset Instructions</Text>
                   </>
                 )}
@@ -190,10 +192,10 @@ export default function ForgotPasswordScreen() {
             </TouchableOpacity>
 
             <View style={styles.helpContainer}>
-              <Text style={styles.helpText}>Remember your password? </Text>
+              <Text style={[styles.helpText, { color: colors.textSecondary }]}>Remember your password? </Text>
               <Link href="/auth/login" asChild>
                 <TouchableOpacity>
-                  <Text style={styles.helpLink}>Sign In</Text>
+                  <Text style={[styles.helpLink, { color: colors.primary }]}>Sign In</Text>
                 </TouchableOpacity>
               </Link>
             </View>
@@ -250,7 +252,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   formContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 20,
     padding: 24,
     shadowColor: '#000',
@@ -260,15 +261,12 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   errorContainer: {
-    backgroundColor: '#FEF2F2',
     borderRadius: 8,
     padding: 12,
     marginBottom: 20,
     borderLeftWidth: 4,
-    borderLeftColor: '#EF4444',
   },
   errorText: {
-    color: '#DC2626',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -278,10 +276,8 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     paddingHorizontal: 16,
   },
   inputIcon: {
@@ -291,13 +287,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 16,
     fontSize: 16,
-    color: '#1F2937',
   },
   inputError: {
     borderColor: '#EF4444',
   },
   fieldErrorText: {
-    color: '#EF4444',
     fontSize: 12,
     marginTop: 4,
     marginLeft: 4,
@@ -320,7 +314,7 @@ const styles = StyleSheet.create({
   submitButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#8A2BE2',
+    color: '#FFFFFF',
   },
   helpContainer: {
     flexDirection: 'row',
@@ -329,11 +323,9 @@ const styles = StyleSheet.create({
   },
   helpText: {
     fontSize: 14,
-    color: '#6B7280',
   },
   helpLink: {
     fontSize: 14,
-    color: '#8A2BE2',
     fontWeight: '600',
   },
   successContainer: {
@@ -363,7 +355,6 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   instructionsContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     padding: 20,
     marginBottom: 32,
@@ -397,7 +388,6 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#8A2BE2',
   },
   resendButton: {
     paddingVertical: 12,

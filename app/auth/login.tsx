@@ -14,10 +14,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Link, router } from 'expo-router';
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from 'lucide-react-native';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 export default function LoginScreen() {
   const { login, continueAsGuest, isLoading, error, clearError } = useAuth();
+  const { colors } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -86,7 +88,7 @@ export default function LoginScreen() {
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <LinearGradient colors={['#8A2BE2', '#4B0082']} style={styles.gradient}>
+      <LinearGradient colors={[colors.primary, colors.primaryDark]} style={styles.gradient}>
         <ScrollView 
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
@@ -107,21 +109,21 @@ export default function LoginScreen() {
           </View>
 
           {/* Login Form */}
-          <View style={styles.formContainer}>
+          <View style={[styles.formContainer, { backgroundColor: colors.surface }]}>
             {error && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
+              <View style={[styles.errorContainer, { backgroundColor: colors.error + '20', borderColor: colors.error }]}>
+                <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
               </View>
             )}
 
             {/* Email Field */}
             <View style={styles.inputContainer}>
-              <View style={styles.inputWrapper}>
-                <Mail size={20} color="#8A2BE2" style={styles.inputIcon} />
+              <View style={[styles.inputWrapper, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
+                <Mail size={20} color={colors.primary} style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, fieldErrors.email && styles.inputError]}
+                  style={[styles.input, fieldErrors.email && styles.inputError, { color: colors.text }]}
                   placeholder="Email address"
-                  placeholderTextColor="#AAAAAA"
+                  placeholderTextColor={colors.textTertiary}
                   value={email}
                   onChangeText={(text) => {
                     setEmail(text);
@@ -133,18 +135,18 @@ export default function LoginScreen() {
                 />
               </View>
               {fieldErrors.email && (
-                <Text style={styles.fieldErrorText}>{fieldErrors.email}</Text>
+                <Text style={[styles.fieldErrorText, { color: colors.error }]}>{fieldErrors.email}</Text>
               )}
             </View>
 
             {/* Password Field */}
             <View style={styles.inputContainer}>
-              <View style={styles.inputWrapper}>
-                <Lock size={20} color="#8A2BE2" style={styles.inputIcon} />
+              <View style={[styles.inputWrapper, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
+                <Lock size={20} color={colors.primary} style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, fieldErrors.password && styles.inputError]}
+                  style={[styles.input, fieldErrors.password && styles.inputError, { color: colors.text }]}
                   placeholder="Password"
-                  placeholderTextColor="#AAAAAA"
+                  placeholderTextColor={colors.textTertiary}
                   value={password}
                   onChangeText={(text) => {
                     setPassword(text);
@@ -157,14 +159,14 @@ export default function LoginScreen() {
                   onPress={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeOff size={20} color="#8A2BE2" />
+                    <EyeOff size={20} color={colors.primary} />
                   ) : (
-                    <Eye size={20} color="#8A2BE2" />
+                    <Eye size={20} color={colors.primary} />
                   )}
                 </TouchableOpacity>
               </View>
               {fieldErrors.password && (
-                <Text style={styles.fieldErrorText}>{fieldErrors.password}</Text>
+                <Text style={[styles.fieldErrorText, { color: colors.error }]}>{fieldErrors.password}</Text>
               )}
             </View>
 
@@ -174,14 +176,14 @@ export default function LoginScreen() {
                 style={styles.rememberMeContainer}
                 onPress={() => setRememberMe(!rememberMe)}
               >
-                <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                <View style={[styles.checkbox, { borderColor: colors.primary }, rememberMe && { backgroundColor: colors.primary }]}>
                   {rememberMe && <Text style={styles.checkmark}>✓</Text>}
                 </View>
-                <Text style={styles.rememberMeText}>Remember me</Text>
+                <Text style={[styles.rememberMeText, { color: colors.textSecondary }]}>Remember me</Text>
               </TouchableOpacity>
 
               <TouchableOpacity onPress={handleForgotPassword}>
-                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>Forgot Password?</Text>
               </TouchableOpacity>
             </View>
 
@@ -192,15 +194,15 @@ export default function LoginScreen() {
               disabled={isLoading}
             >
               <LinearGradient
-                colors={isLoading ? ['#666', '#555'] : ['#FFFFFF', '#F0F0F0']}
+                colors={isLoading ? [colors.textSecondary, colors.textTertiary] : [colors.primary, colors.primaryDark]}
                 style={styles.loginGradient}
               >
                 {isLoading ? (
-                  <LoadingSpinner size={20} color="#8A2BE2" />
+                  <LoadingSpinner size={20} color="#FFFFFF" />
                 ) : (
                   <>
                     <Text style={styles.loginButtonText}>Sign In</Text>
-                    <ArrowRight size={20} color="#8A2BE2" />
+                    <ArrowRight size={20} color="#FFFFFF" />
                   </>
                 )}
               </LinearGradient>
@@ -208,19 +210,19 @@ export default function LoginScreen() {
 
             {/* Guest Access */}
             <TouchableOpacity
-              style={styles.guestButton}
+              style={[styles.guestButton, { borderColor: colors.primary }]}
               onPress={handleGuestAccess}
               disabled={isLoading}
             >
-              <Text style={styles.guestButtonText}>Continue as Guest</Text>
+              <Text style={[styles.guestButtonText, { color: colors.primary }]}>Continue as Guest</Text>
             </TouchableOpacity>
 
             {/* Register Link */}
             <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>Don't have an account? </Text>
+              <Text style={[styles.registerText, { color: colors.textSecondary }]}>Don't have an account? </Text>
               <Link href="/auth/register" asChild>
                 <TouchableOpacity>
-                  <Text style={styles.registerLink}>Sign Up</Text>
+                  <Text style={[styles.registerLink, { color: colors.primary }]}>Sign Up</Text>
                 </TouchableOpacity>
               </Link>
             </View>
@@ -269,7 +271,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   formContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 20,
     padding: 24,
     shadowColor: '#000',
@@ -279,15 +280,12 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   errorContainer: {
-    backgroundColor: '#FEF2F2',
     borderRadius: 8,
     padding: 12,
     marginBottom: 20,
     borderLeftWidth: 4,
-    borderLeftColor: '#EF4444',
   },
   errorText: {
-    color: '#DC2626',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -297,10 +295,8 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
     paddingHorizontal: 16,
   },
   inputIcon: {
@@ -310,7 +306,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 16,
     fontSize: 16,
-    color: '#1F2937',
   },
   inputError: {
     borderColor: '#EF4444',
@@ -319,7 +314,6 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   fieldErrorText: {
-    color: '#EF4444',
     fontSize: 12,
     marginTop: 4,
     marginLeft: 4,
@@ -339,13 +333,9 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#8A2BE2',
     marginRight: 8,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: '#8A2BE2',
   },
   checkmark: {
     color: '#FFFFFF',
@@ -354,11 +344,9 @@ const styles = StyleSheet.create({
   },
   rememberMeText: {
     fontSize: 14,
-    color: '#6B7280',
   },
   forgotPasswordText: {
     fontSize: 14,
-    color: '#8A2BE2',
     fontWeight: '600',
   },
   loginButton: {
@@ -379,12 +367,11 @@ const styles = StyleSheet.create({
   loginButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#8A2BE2',
+    color: '#FFFFFF',
   },
   guestButton: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: '#8A2BE2',
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -393,7 +380,6 @@ const styles = StyleSheet.create({
   guestButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#8A2BE2',
   },
   registerContainer: {
     flexDirection: 'row',
@@ -402,11 +388,9 @@ const styles = StyleSheet.create({
   },
   registerText: {
     fontSize: 14,
-    color: '#6B7280',
   },
   registerLink: {
     fontSize: 14,
-    color: '#8A2BE2',
     fontWeight: '600',
   },
 });

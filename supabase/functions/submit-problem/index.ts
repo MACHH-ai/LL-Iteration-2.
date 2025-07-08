@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-// Default user ID that matches the one in constants/user.ts
+// Default user ID for guest users
 const DEFAULT_USER_ID = '12345678-1234-5678-1234-567812345678';
 
 const corsHeaders = {
@@ -77,50 +77,14 @@ serve(async (req) => {
     // Handle user_id - use provided or generate default
     let userId = requestBody.user_id;
     if (!userId) {
-      userId = DEFAULT_USER_ID; // Use consistent default user ID
+      userId = DEFAULT_USER_ID; // Use consistent default user ID for guests
       console.log('No user_id provided, using default:', userId);
     } else if (!isValidUUID(userId)) {
-      console.log('Invalid UUID format provided:', userId, 'generating new one');
-      userId = generateUUID();
+      console.log('Invalid UUID format provided:', userId, 'using default');
+      userId = DEFAULT_USER_ID;
     }
 
     console.log('Using user_id:', userId);
-
-    // Check if user exists in the database, if not create a default user
-    const { data: existingUser, error: userCheckError } = await supabaseClient
-      .from('users')
-      .select('id')
-      .eq('id', userId)
-      .single();
-
-    if (userCheckError && userCheckError.code === 'PGRST116') {
-      // User doesn't exist, create a default user record
-      console.log('User does not exist, creating default user:', userId);
-      
-      const { error: createUserError } = await supabaseClient
-        .from('users')
-        .insert({
-          id: userId,
-          email: userId === DEFAULT_USER_ID ? 'guest@example.com' : `user-${userId}@example.com`,
-          first_name: 'Guest',
-          last_name: 'User',
-          is_guest: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
-
-      if (createUserError) {
-        console.error('Failed to create default user:', createUserError);
-        // Continue anyway - the problem might still be processable
-      } else {
-        console.log('Successfully created default user');
-      }
-    } else if (userCheckError) {
-      console.error('Error checking user existence:', userCheckError);
-      // Continue anyway - the problem might still be processable
-    } else {
-      console.log('User exists in database');
-    }
 
     // Create problem submission record
     const problemId = generateUUID();
@@ -307,7 +271,7 @@ Format your response as a structured explanation that helps the student understa
       .from('problem_submissions')
       .update({
         solution: solution,
-        topic: subject,
+        subject: subject,
         difficulty: difficulty,
         tags: tags,
         status: 'completed',
